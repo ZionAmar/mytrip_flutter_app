@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/trip_model.dart';
 import 'activities_screen.dart';
 import 'budget_screen.dart';
+import 'weather_screen.dart'; // ייבוא מסך מזג האוויר
 
 class HomeScreen extends StatelessWidget {
   final Trip trip;
@@ -15,7 +16,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // רשימה מלאה של כל הפריטים בדשבורד
     final List<DashboardItem> items = [
       DashboardItem(
         icon: Icons.event_note,
@@ -36,7 +36,6 @@ class HomeScreen extends StatelessWidget {
         icon: Icons.account_balance_wallet,
         title: 'תקציב',
         onTap: () {
-          // הפעלנו את הניווט למסך התקציב
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -51,13 +50,17 @@ class HomeScreen extends StatelessWidget {
       DashboardItem(
         icon: Icons.wb_sunny,
         title: 'מזג אוויר',
-        onTap: () { /* נוסיף ניווט בעתיד */ },
+        onTap: () {
+          // ניווט ישיר למסך מזג האוויר עם כל אובייקט הטיול
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WeatherScreen(trip: trip),
+            ),
+          );
+        },
       ),
-      DashboardItem(
-        icon: Icons.assessment,
-        title: 'סיכום טיול',
-        onTap: () { /* נוסיף ניווט בעתיד */ },
-      ),
+      // אפשר להוסיף כאן עוד מסכים בעתיד
     ];
 
     return Scaffold(

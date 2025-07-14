@@ -4,18 +4,20 @@ import 'budget_category_model.dart';
 class Trip {
   final String id;
   String name;
+  String destinationCity; // הוספנו את עיר היעד
   DateTime startDate;
   DateTime endDate;
-  DateTime lastModifiedDate; // הוספנו תאריך שינוי אחרון
+  DateTime lastModifiedDate;
   List<Activity> activities;
   List<BudgetCategory> budgetCategories;
 
   Trip({
     required this.id,
     required this.name,
+    required this.destinationCity, // הוספנו לקונסטרקטור
     required this.startDate,
     required this.endDate,
-    required this.lastModifiedDate, // הוספנו לקונסטרקטור
+    required this.lastModifiedDate,
     this.activities = const [],
     this.budgetCategories = const [],
   });
@@ -24,9 +26,10 @@ class Trip {
     return {
       'id': id,
       'name': name,
+      'destinationCity': destinationCity, // הוספנו לשמירה
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
-      'lastModifiedDate': lastModifiedDate.toIso8601String(), // הוספנו לשמירה
+      'lastModifiedDate': lastModifiedDate.toIso8601String(),
       'activities': activities.map((a) => a.toJson()).toList(),
       'budgetCategories': budgetCategories.map((b) => b.toJson()).toList(),
     };
@@ -36,9 +39,9 @@ class Trip {
     return Trip(
       id: json['id'],
       name: json['name'],
+      destinationCity: json['destinationCity'] ?? '', // הוספנו לקריאה
       startDate: DateTime.parse(json['startDate']),
       endDate: DateTime.parse(json['endDate']),
-      // הוספנו לקריאה, עם ערך ברירת מחדל לתאימות לאחור
       lastModifiedDate: json['lastModifiedDate'] != null
           ? DateTime.parse(json['lastModifiedDate'])
           : DateTime.now(),

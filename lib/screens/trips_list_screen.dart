@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 import '../models/trip_model.dart';
 import 'home_screen.dart';
+import 'add_trip_screen.dart'; // 1. הוספנו ייבוא למסך החדש
 
 class TripsListScreen extends StatefulWidget {
   @override
@@ -12,9 +12,10 @@ class TripsListScreen extends StatefulWidget {
 }
 
 class _TripsListScreenState extends State<TripsListScreen> {
-  List<Trip> _trips = [];
-  var uuid = Uuid();
-  // הוספנו מפתח ל-RefreshIndicator
+  List<Trip> _allTrips = [];
+  List<Trip> _futureTrips = [];
+  List<Trip> _pastTrips = [];
+
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
 
   @override
@@ -23,10 +24,12 @@ class _TripsListScreenState extends State<TripsListScreen> {
     _loadTrips();
   }
 
-  void _sortTrips() {
-    setState(() {
-      _trips.sort((a, b) => b.lastModifiedDate.compareTo(a.lastModifiedDate));
-    });
+  void _separateAndSortTrips() {
+    final now = DateTime.now();
+    _allTrips.sort((a, b) => b.lastModifiedDate.compareTo(a.lastModifiedDate));
+    _futureTrips = _allTrips.where((trip) => trip.endDate.isAfter(now)).toList();
+    _pastTrips = _allTrips.where((trip) => !trip.endDate.isAfter(now)).toList();
+    setState(() {});
   }
 
   Future<void> _loadTrips() async {
@@ -35,8 +38,8 @@ class _TripsListScreenState extends State<TripsListScreen> {
     if (tripsString != null) {
       final List<dynamic> jsonList = jsonDecode(tripsString);
       if (mounted) {
-        _trips = jsonList.map((json) => Trip.fromJson(json)).toList();
-        _sortTrips();
+        _allTrips = jsonList.map((json) => Trip.fromJson(json)).toList();
+        _separateAndSortTrips();
       }
     }
   }
@@ -44,39 +47,35 @@ class _TripsListScreenState extends State<TripsListScreen> {
   Future<void> _saveTrips() async {
     final prefs = await SharedPreferences.getInstance();
     final List<Map<String, dynamic>> jsonList =
-    _trips.map((trip) => trip.toJson()).toList();
+    _allTrips.map((trip) => trip.toJson()).toList();
     await prefs.setString('trips_list', jsonEncode(jsonList));
   }
 
   void _updateAndSaveTrip(Trip updatedTrip) {
-    final index = _trips.indexWhere((trip) => trip.id == updatedTrip.id);
+    final index = _allTrips.indexWhere((trip) => trip.id == updatedTrip.id);
     if (index != -1) {
       updatedTrip.lastModifiedDate = DateTime.now();
-      setState(() {
-        _trips[index] = updatedTrip;
-      });
-      _sortTrips();
+      _allTrips[index] = updatedTrip;
+      _separateAndSortTrips();
       _saveTrips();
     }
   }
 
   void _addTrip(Trip trip) {
-    setState(() {
-      _trips.add(trip);
-    });
-    _sortTrips();
+    _allTrips.add(trip);
+    _separateAndSortTrips();
     _saveTrips();
   }
 
-  void _deleteTrip(int index) {
-    setState(() {
-      _trips.removeAt(index);
-    });
+  void _deleteTrip(int index, bool isFutureTrip) {
+    final tripToDelete = isFutureTrip ? _futureTrips[index] : _pastTrips[index];
+    _allTrips.removeWhere((trip) => trip.id == tripToDelete.id);
+    _separateAndSortTrips();
     _saveTrips();
   }
 
-  Future<void> _showDeleteConfirmationDialog(int index) async {
-    final trip = _trips[index];
+  Future<void> _showDeleteConfirmationDialog(int index, bool isFutureTrip) async {
+    final trip = isFutureTrip ? _futureTrips[index] : _pastTrips[index];
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -84,14 +83,11 @@ class _TripsListScreenState extends State<TripsListScreen> {
           title: Text('אישור מחיקה'),
           content: Text('האם למחוק את הטיול "${trip.name}"?'),
           actions: <Widget>[
-            TextButton(
-              child: Text('ביטול'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            TextButton(child: Text('ביטול'), onPressed: () => Navigator.of(context).pop()),
             TextButton(
               child: Text('מחק', style: TextStyle(color: Colors.red)),
               onPressed: () {
-                _deleteTrip(index);
+                _deleteTrip(index, isFutureTrip);
                 Navigator.of(context).pop();
               },
             ),
@@ -110,115 +106,89 @@ class _TripsListScreenState extends State<TripsListScreen> {
           onTripUpdated: _updateAndSaveTrip,
         ),
       ),
-    );
+    ).then((_) {
+      _separateAndSortTrips();
+    });
   }
 
-  void _showAddTripDialog() {
-    final _nameController = TextEditingController();
-    DateTime? _startDate;
-    DateTime? _endDate;
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Text('יצירת טיול חדש'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(labelText: 'שם הטיול'),
-                  ),
-                  SizedBox(height: 16),
-                  Column(
-                    children: [
-                      TextButton.icon(
-                        icon: Icon(Icons.calendar_today),
-                        label: Text(_startDate == null ? 'תאריך התחלה' : DateFormat('dd/MM/yy').format(_startDate!)),
-                        onPressed: () async {
-                          final date = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2030));
-                          if (date != null) setDialogState(() => _startDate = date);
-                        },
-                      ),
-                      TextButton.icon(
-                        icon: Icon(Icons.calendar_today),
-                        label: Text(_endDate == null ? 'תאריך סיום' : DateFormat('dd/MM/yy').format(_endDate!)),
-                        onPressed: () async {
-                          final date = await showDatePicker(context: context, initialDate: _startDate ?? DateTime.now(), firstDate: _startDate ?? DateTime.now(), lastDate: DateTime(2030));
-                          if (date != null) setDialogState(() => _endDate = date);
-                        },
-                      ),
-                    ],
-                  )
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text('ביטול')),
-              ElevatedButton(
-                onPressed: () {
-                  if (_nameController.text.isNotEmpty && _startDate != null && _endDate != null) {
-                    final newTrip = Trip(
-                      id: uuid.v4(),
-                      name: _nameController.text,
-                      startDate: _startDate!,
-                      endDate: _endDate!,
-                      lastModifiedDate: DateTime.now(),
-                    );
-                    _addTrip(newTrip);
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text('צור טיול'),
-              ),
-            ],
-          );
-        });
-      },
+  // 2. החלפנו את הדיאלוג הקופץ בפונקציית ניווט למסך החדש
+  void _navigateToAddTripScreen() async {
+    final newTrip = await Navigator.push<Trip>(
+      context,
+      MaterialPageRoute(builder: (context) => AddTripScreen()),
     );
+
+    if (newTrip != null) {
+      _addTrip(newTrip);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('הטיולים שלי'),
-        centerTitle: true,
-      ),
-      // עטיפת גוף המסך ב-RefreshIndicator
+      appBar: AppBar(title: Text('הטיולים שלי')),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
-        onRefresh: _loadTrips, // הפעולה שתתבצע ברענון
-        child: _trips.isEmpty
+        onRefresh: _loadTrips,
+        child: _allTrips.isEmpty
             ? Center(child: Text('עדיין לא יצרת טיולים.\nלחץ על + או משוך למטה לרענון.'))
-            : ListView.builder(
-          itemCount: _trips.length,
-          itemBuilder: (context, index) {
-            final trip = _trips[index];
-            return Card(
-              margin: EdgeInsets.all(8.0),
-              child: ListTile(
-                leading: Icon(Icons.airplanemode_active, color: Colors.teal),
-                title: Text(trip.name, style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('${DateFormat('dd/MM/yyyy').format(trip.startDate)} - ${DateFormat('dd/MM/yyyy').format(trip.endDate)}'),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.red[700]),
-                  tooltip: 'מחק טיול',
-                  onPressed: () => _showDeleteConfirmationDialog(index),
+            : SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_futureTrips.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('טיולים עתידיים', style: Theme.of(context).textTheme.headlineSmall),
                 ),
-                onTap: () => _navigateToTripDashboard(trip),
+              ListView.builder(
+                itemCount: _futureTrips.length,
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final trip = _futureTrips[index];
+                  return _buildTripCard(trip, index, true);
+                },
               ),
-            );
-          },
+              if (_pastTrips.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('טיולי עבר', style: Theme.of(context).textTheme.headlineSmall),
+                ),
+              ListView.builder(
+                itemCount: _pastTrips.length,
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final trip = _pastTrips[index];
+                  return _buildTripCard(trip, index, false);
+                },
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTripDialog,
+        onPressed: _navigateToAddTripScreen, // 3. הכפתור קורא לפונקציה החדשה
         child: Icon(Icons.add),
         tooltip: 'טיול חדש',
+      ),
+    );
+  }
+
+  Widget _buildTripCard(Trip trip, int index, bool isFutureTrip) {
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+      child: ListTile(
+        leading: Icon(Icons.airplanemode_active, color: Colors.teal),
+        title: Text(trip.name, style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('${DateFormat('dd/MM/yyyy').format(trip.startDate)} - ${DateFormat('dd/MM/yyyy').format(trip.endDate)}'),
+        trailing: IconButton(
+          icon: Icon(Icons.delete_outline, color: Colors.red[700]),
+          onPressed: () => _showDeleteConfirmationDialog(index, isFutureTrip),
+        ),
+        onTap: () => _navigateToTripDashboard(trip),
       ),
     );
   }

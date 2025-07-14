@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart'; // 1. הוסף את הייבוא הזה
 import 'screens/splash_screen.dart';
 import 'screens/trips_list_screen.dart';
 
 void main() {
-  runApp(MyTripApp());
+  // 2. החלף את פונקציית ה-main הקיימת בזו
+  WidgetsFlutterBinding.ensureInitialized();
+  initializeDateFormatting('he_IL', null).then((_) {
+    runApp(MyTripApp());
+  });
 }
 
 class MyTripApp extends StatelessWidget {
@@ -16,7 +21,6 @@ class MyTripApp extends StatelessWidget {
         primarySwatch: Colors.teal,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // מגדירים רק את מסכי הבסיס שהאפליקציה יכולה להגיע אליהם ישירות
       initialRoute: '/',
       routes: {
         '/': (context) => SplashScreen(nextRoute: '/trips'),
