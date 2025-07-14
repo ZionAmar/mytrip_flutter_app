@@ -11,11 +11,17 @@ class ActivitiesScreen extends StatefulWidget {
 
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
   List<Activity> _activities = [];
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
     _loadActivities();
+  }
+
+  void _sortActivities() {
+    // שינוי: ממיין את הרשימה לפי התאריך המלא
+    _activities.sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime));
   }
 
   Future<void> _loadActivities() async {
@@ -25,6 +31,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       final List<dynamic> jsonList = jsonDecode(activitiesString);
       setState(() {
         _activities = jsonList.map((jsonItem) => Activity.fromJson(jsonItem)).toList();
+        _sortActivities();
       });
     }
   }
@@ -36,16 +43,35 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     await prefs.setString('activities_list', jsonEncode(jsonList));
   }
 
-  void _deleteActivity(int index) {
-    setState(() {
-      _activities.removeAt(index);
-    });
-    _saveActivities();
+  // שינוי: הוספנו דיאלוג לאישור מחיקה
+  Future<void> _showDeleteConfirmationDialog(int index) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('אישור מחיקה'),
+          content: Text('האם אתה בטוח שברצונך למחוק את הפעילות "${_activities[index].name}"?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('ביטול'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text('מחק', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                setState(() {
+                  _activities.removeAt(index);
+                });
+                _saveActivities();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  // --- UI and Dialog Logic ---
-
-// הדבק את הקוד המתוקן הזה במקום כל הפונקציה הקיימת של _showActivityDialog
   void _showActivityDialog({Activity? existingActivity, int? index}) {
     final _nameController = TextEditingController(text: existingActivity?.name);
     final _descriptionController =
@@ -67,9 +93,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 lastDate: DateTime(2030),
               );
               if (pickedDate != null && pickedDate != _selectedDate) {
-                setDialogState(() {
-                  _selectedDate = pickedDate;
-                });
+                setDialogState(() => _selectedDate = pickedDate);
               }
             }
 
@@ -79,39 +103,26 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 initialTime: _selectedTime ?? TimeOfDay.now(),
               );
               if (pickedTime != null && pickedTime != _selectedTime) {
-                setDialogState(() {
-                  _selectedTime = pickedTime;
-                });
+                setDialogState(() => _selectedTime = pickedTime);
               }
             }
 
-            // התיקון נמצא כאן - עוטפים את התוכן ב-Directionality
             return Directionality(
               textDirection: TextDirection.rtl,
               child: AlertDialog(
-                title: Text(existingActivity == null
-                    ? 'הוספת פעילות'
-                    : 'עריכת פעילות'),
+                title: Text(existingActivity == null ? 'הוספת פעילות' : 'עריכת פעילות'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextField(
                         controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'שם הפעילות',
-                          hintText: 'לדוגמה: ביקור במוזיאון',
-                        ),
-                        // אין צורך ב-textDirection כאן יותר
+                        decoration: InputDecoration(labelText: 'שם הפעילות'),
                       ),
                       SizedBox(height: 16),
                       TextField(
                         controller: _descriptionController,
-                        decoration: InputDecoration(
-                          labelText: 'תיאור (אופציונלי)',
-                          hintText: 'פרטים נוספים',
-                        ),
-                        // אין צורך ב-textDirection כאן יותר
+                        decoration: InputDecoration(labelText: 'תיאור (אופציונלי)'),
                       ),
                       SizedBox(height: 16),
                       Row(
@@ -119,17 +130,12 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                         children: [
                           TextButton.icon(
                             icon: Icon(Icons.calendar_today),
-                            label: Text(_selectedDate == null
-                                ? 'בחר תאריך'
-                                : DateFormat('dd/MM/yyyy')
-                                .format(_selectedDate!)),
+                            label: Text(_selectedDate == null ? 'בחר תאריך' : DateFormat('dd/MM/yyyy').format(_selectedDate!)),
                             onPressed: _pickDate,
                           ),
                           TextButton.icon(
                             icon: Icon(Icons.access_time),
-                            label: Text(_selectedTime == null
-                                ? 'בחר שעה'
-                                : _selectedTime!.format(context)),
+                            label: Text(_selectedTime == null ? 'בחר שעה' : _selectedTime!.format(context)),
                             onPressed: _pickTime,
                           ),
                         ],
@@ -138,17 +144,12 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   ),
                 ),
                 actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('ביטול'),
-                  ),
+                  TextButton(onPressed: () => Navigator.pop(context), child: Text('ביטול')),
                   ElevatedButton(
                     onPressed: () {
                       final name = _nameController.text.trim();
-                      if (name.isNotEmpty &&
-                          _selectedDate != null &&
-                          _selectedTime != null) {
-                        final newActivity = Activity(
+                      if (name.isNotEmpty && _selectedDate != null && _selectedTime != null) {
+                        final newOrUpdatedActivity = Activity(
                           name: name,
                           description: _descriptionController.text.trim(),
                           date: _selectedDate!,
@@ -158,10 +159,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
 
                         setState(() {
                           if (existingActivity == null) {
-                            _activities.add(newActivity);
+                            _activities.add(newOrUpdatedActivity);
                           } else {
-                            _activities[index!] = newActivity;
+                            _activities[index!] = newOrUpdatedActivity;
                           }
+                          _sortActivities(); // מיון לאחר הוספה/עריכה
                         });
                         _saveActivities();
                         Navigator.pop(context);
@@ -182,37 +184,66 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('פעילויות')),
-      body: _activities.isEmpty
-          ? Center(child: Text('אין פעילויות. לחץ על + להוספה.'))
-          : ListView.builder(
-        itemCount: _activities.length,
-        itemBuilder: (context, index) {
-          final activity = _activities[index];
-          // שימוש ב-CheckboxListTile לתצוגה נוחה
-          return CheckboxListTile(
-            title: Text(
-              activity.name,
-              style: TextStyle(
-                decoration: activity.isDone ? TextDecoration.lineThrough : null,
+      // שינוי: הוספנו RefreshIndicator
+      body: RefreshIndicator(
+        key: _refreshIndicatorKey,
+        onRefresh: _loadActivities,
+        child: _activities.isEmpty
+            ? Center(child: Text('אין פעילויות. לחץ על + להוספה.'))
+            : ListView.builder(
+          itemCount: _activities.length,
+          itemBuilder: (context, index) {
+            final activity = _activities[index];
+            return CheckboxListTile(
+              title: Text(
+                activity.name,
+                style: TextStyle(decoration: activity.isDone ? TextDecoration.lineThrough : null),
               ),
-            ),
-            subtitle: Text(
-              '${DateFormat('dd/MM/yyyy').format(activity.date)} - ${activity.startTime.format(context)}',
-            ),
-            value: activity.isDone,
-            onChanged: (bool? value) {
-              setState(() {
-                activity.isDone = value ?? false;
-              });
-              _saveActivities();
-            },
-            secondary: IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteActivity(index),
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
-          );
-        },
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${DateFormat('dd/MM/yyyy').format(activity.date)} - ${activity.startTime.format(context)}',
+                  ),
+                  // הצג את התיאור רק אם הוא לא ריק
+                  if (activity.description != null && activity.description!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        activity.description!,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ),
+                ],
+              ),
+              value: activity.isDone,
+              onChanged: (bool? value) {
+                setState(() {
+                  activity.isDone = value ?? false;
+                });
+                _saveActivities();
+              },
+              // שינוי: ה-secondary הוא כעת Row עם שני כפתורים
+              secondary: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit, color: Colors.blueGrey),
+                    tooltip: 'עריכת פעילות',
+                    onPressed: () => _showActivityDialog(existingActivity: activity, index: index),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'מחיקת פעילות',
+                    // שינוי: קריאה לדיאלוג האישור
+                    onPressed: () => _showDeleteConfirmationDialog(index),
+                  ),
+                ],
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showActivityDialog(),

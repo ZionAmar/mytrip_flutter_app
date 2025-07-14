@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class Activity {
   String name;
-  String? description; // שדה אופציונלי
+  String? description;
   DateTime date;
   TimeOfDay startTime;
   bool isDone;
@@ -12,21 +12,24 @@ class Activity {
     this.description,
     required this.date,
     required this.startTime,
-    this.isDone = false, // ערך ברירת מחדל
+    this.isDone = false,
   });
 
-  // המרה מאובייקט ל-Map (כדי לשמור כ-JSON)
+  // הוספנו פונקציית עזר למיון קל יותר
+  DateTime get fullDateTime {
+    return DateTime(date.year, date.month, date.day, startTime.hour, startTime.minute);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'description': description,
-      'date': date.toIso8601String(), // המרת תאריך לטקסט
-      'startTime': '${startTime.hour}:${startTime.minute}', // המרת שעה לטקסט
+      'date': date.toIso8601String(),
+      'startTime': '${startTime.hour}:${startTime.minute}',
       'isDone': isDone,
     };
   }
 
-  // המרה מ-Map לאובייקט (כדי לקרוא מ-JSON)
   factory Activity.fromJson(Map<String, dynamic> json) {
     final timeParts = json['startTime'].split(':');
     return Activity(
