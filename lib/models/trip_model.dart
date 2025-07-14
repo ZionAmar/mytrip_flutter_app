@@ -1,3 +1,4 @@
+// lib/models/trip_model.dart
 import 'activity_model.dart';
 import 'budget_category_model.dart';
 
@@ -22,6 +23,29 @@ class Trip {
     this.budgetCategories = const [],
   });
 
+  // copyWith method for convenient updating
+  Trip copyWith({
+    String? id,
+    String? name,
+    String? destinationCity,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? lastModifiedDate,
+    List<Activity>? activities,
+    List<BudgetCategory>? budgetCategories,
+  }) {
+    return Trip(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      destinationCity: destinationCity ?? this.destinationCity,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
+      activities: activities ?? this.activities,
+      budgetCategories: budgetCategories ?? this.budgetCategories,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -39,18 +63,18 @@ class Trip {
     return Trip(
       id: json['id'],
       name: json['name'],
-      destinationCity: json['destinationCity'] ?? '', // הוספנו לקריאה
+      destinationCity: json['destinationCity'] ?? '', // הוספנו לקריאה, עם טיפול ב-null
       startDate: DateTime.parse(json['startDate']),
       endDate: DateTime.parse(json['endDate']),
       lastModifiedDate: json['lastModifiedDate'] != null
           ? DateTime.parse(json['lastModifiedDate'])
-          : DateTime.now(),
-      activities: (json['activities'] as List)
-          .map((a) => Activity.fromJson(a))
-          .toList(),
-      budgetCategories: (json['budgetCategories'] as List)
-          .map((b) => BudgetCategory.fromJson(b))
-          .toList(),
+          : DateTime.now(), // Fallback if lastModifiedDate is missing
+      activities: (json['activities'] as List<dynamic>?) // Handle potential null activities list
+          ?.map((a) => Activity.fromJson(a as Map<String, dynamic>))
+          .toList() ?? [], // Provide empty list if null
+      budgetCategories: (json['budgetCategories'] as List<dynamic>?) // Handle potential null categories list
+          ?.map((b) => BudgetCategory.fromJson(b as Map<String, dynamic>))
+          .toList() ?? [], // Provide empty list if null
     );
   }
 }

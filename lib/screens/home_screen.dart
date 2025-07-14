@@ -1,10 +1,13 @@
+// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import '../models/trip_model.dart';
 import 'activities_screen.dart';
 import 'budget_screen.dart';
-import 'weather_screen.dart'; // ייבוא מסך מזג האוויר
+import 'weather_screen.dart';
+import 'edit_trip_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+// שינוי ל-StatefulWidget
+class HomeScreen extends StatefulWidget {
   final Trip trip;
   final Function(Trip) onTripUpdated;
 
@@ -13,6 +16,29 @@ class HomeScreen extends StatelessWidget {
     required this.trip,
     required this.onTripUpdated,
   });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // שמור עותק של הטיול במצב של ה-StatefulWidget
+  late Trip _currentTrip;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTrip = widget.trip; // אתחל את הטיול הנוכחי עם הטיול שהתקבל
+  }
+
+  // פונקציה לעדכון הטיול וה-UI
+  void _updateTripInHomeScreen(Trip updatedTrip) {
+    setState(() {
+      _currentTrip = updatedTrip; // עדכן את המצב עם הטיול החדש
+    });
+    // קרא גם ל-onTripUpdated כדי לעדכן את המסך שמעל (רשימת הטיולים)
+    widget.onTripUpdated(updatedTrip);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +51,8 @@ class HomeScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => ActivitiesScreen(
-                trip: trip,
-                onTripUpdated: onTripUpdated,
+                trip: _currentTrip, // העבר את הטיול המעודכן
+                onTripUpdated: _updateTripInHomeScreen, // העבר את פונקציית העדכון של ה-HomeScreen
               ),
             ),
           );
@@ -40,8 +66,8 @@ class HomeScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => BudgetScreen(
-                trip: trip,
-                onTripUpdated: onTripUpdated,
+                trip: _currentTrip, // העבר את הטיול המעודכן
+                onTripUpdated: _updateTripInHomeScreen, // העבר את פונקציית העדכון של ה-HomeScreen
               ),
             ),
           );
@@ -51,27 +77,42 @@ class HomeScreen extends StatelessWidget {
         icon: Icons.wb_sunny,
         title: 'מזג אוויר',
         onTap: () {
-          // ניווט ישיר למסך מזג האוויר עם כל אובייקט הטיול
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => WeatherScreen(trip: trip),
+              builder: (context) => WeatherScreen(trip: _currentTrip), // העבר את הטיול המעודכן
             ),
           );
         },
       ),
-      // אפשר להוסיף כאן עוד מסכים בעתיד
+      DashboardItem(
+        icon: Icons.info_outline,
+        title: 'פרטי טיול',
+        onTap: () async {
+          final updatedTrip = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditTripScreen(
+                trip: _currentTrip, // העבר את הטיול הנוכחי לעריכה
+              ),
+            ),
+          );
+          if (updatedTrip != null && updatedTrip is Trip) {
+            _updateTripInHomeScreen(updatedTrip); // קרא לפונקציה החדשה לעדכון המצב ב-HomeScreen
+          }
+        },
+      ),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(trip.name),
+        title: Text(_currentTrip.name), // השתמש בשם מהטיול במצב
         centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 12.0,
             mainAxisSpacing: 12.0,
@@ -92,10 +133,10 @@ class HomeScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(item.icon, size: 48.0, color: Theme.of(context).primaryColor),
-                    SizedBox(height: 12.0),
+                    const SizedBox(height: 12.0),
                     Text(
                       item.title,
-                      style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
                   ],

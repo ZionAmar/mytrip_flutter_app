@@ -154,7 +154,7 @@ class _TripsListScreenState extends State<TripsListScreen> {
               if (_pastTrips.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text('טיולי עבר', style: Theme.of(context).textTheme.headlineSmall),
+                  child: Text('טיולים שעברו', style: Theme.of(context).textTheme.headlineSmall),
                 ),
               ListView.builder(
                 itemCount: _pastTrips.length,
