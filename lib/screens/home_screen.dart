@@ -6,6 +6,7 @@ import 'budget_screen.dart';
 import 'weather_screen.dart';
 import 'edit_trip_screen.dart';
 import 'map_screen.dart';
+import 'trip_summary_screen.dart';
 
 
 // שינוי ל-StatefulWidget
@@ -96,6 +97,20 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => MapScreen(
+                trip: _currentTrip, // העבר את אובייקט הטיול
+              ),
+            ),
+          );
+        },
+      ),
+      DashboardItem(
+        icon: Icons.summarize, // אייקון למפה
+        title: 'סיכום טיול',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TripSummaryScreen(
                 trip: _currentTrip, // העבר את אובייקט הטיול
               ),
             ),

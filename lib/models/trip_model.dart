@@ -1,29 +1,31 @@
 // lib/models/trip_model.dart
 import 'activity_model.dart';
 import 'budget_category_model.dart';
+import 'weather_model.dart'; // <--- ודא שזה קיים!
 
 class Trip {
   final String id;
   String name;
-  String destinationCity; // הוספנו את עיר היעד
+  String destinationCity;
   DateTime startDate;
   DateTime endDate;
   DateTime lastModifiedDate;
   List<Activity> activities;
   List<BudgetCategory> budgetCategories;
+  List<DailyWeather>? savedWeatherForecast; // <--- החזרנו את השדה
 
   Trip({
     required this.id,
     required this.name,
-    required this.destinationCity, // הוספנו לקונסטרקטור
+    required this.destinationCity,
     required this.startDate,
     required this.endDate,
     required this.lastModifiedDate,
     this.activities = const [],
     this.budgetCategories = const [],
+    this.savedWeatherForecast, // <--- החזרנו לקונסטרקטור
   });
 
-  // copyWith method for convenient updating
   Trip copyWith({
     String? id,
     String? name,
@@ -33,6 +35,7 @@ class Trip {
     DateTime? lastModifiedDate,
     List<Activity>? activities,
     List<BudgetCategory>? budgetCategories,
+    List<DailyWeather>? savedWeatherForecast, // <--- החזרנו ל-copyWith
   }) {
     return Trip(
       id: id ?? this.id,
@@ -43,6 +46,7 @@ class Trip {
       lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
       activities: activities ?? this.activities,
       budgetCategories: budgetCategories ?? this.budgetCategories,
+      savedWeatherForecast: savedWeatherForecast ?? this.savedWeatherForecast, // <--- החזרנו לכאן
     );
   }
 
@@ -50,12 +54,13 @@ class Trip {
     return {
       'id': id,
       'name': name,
-      'destinationCity': destinationCity, // הוספנו לשמירה
+      'destinationCity': destinationCity,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'lastModifiedDate': lastModifiedDate.toIso8601String(),
       'activities': activities.map((a) => a.toJson()).toList(),
       'budgetCategories': budgetCategories.map((b) => b.toJson()).toList(),
+      'savedWeatherForecast': savedWeatherForecast?.map((w) => w.toJson()).toList(), // <--- החזרנו לשמירה
     };
   }
 
@@ -63,18 +68,21 @@ class Trip {
     return Trip(
       id: json['id'],
       name: json['name'],
-      destinationCity: json['destinationCity'] ?? '', // הוספנו לקריאה, עם טיפול ב-null
+      destinationCity: json['destinationCity'] ?? '',
       startDate: DateTime.parse(json['startDate']),
       endDate: DateTime.parse(json['endDate']),
       lastModifiedDate: json['lastModifiedDate'] != null
           ? DateTime.parse(json['lastModifiedDate'])
-          : DateTime.now(), // Fallback if lastModifiedDate is missing
-      activities: (json['activities'] as List<dynamic>?) // Handle potential null activities list
+          : DateTime.now(),
+      activities: (json['activities'] as List<dynamic>?)
           ?.map((a) => Activity.fromJson(a as Map<String, dynamic>))
-          .toList() ?? [], // Provide empty list if null
-      budgetCategories: (json['budgetCategories'] as List<dynamic>?) // Handle potential null categories list
+          .toList() ?? [],
+      budgetCategories: (json['budgetCategories'] as List<dynamic>?)
           ?.map((b) => BudgetCategory.fromJson(b as Map<String, dynamic>))
-          .toList() ?? [], // Provide empty list if null
+          .toList() ?? [],
+      savedWeatherForecast: (json['savedWeatherForecast'] as List<dynamic>?) // <--- החזרנו לטעינה
+          ?.map((w) => DailyWeather.fromJson(w as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
