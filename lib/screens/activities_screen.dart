@@ -1,56 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../models/activity_model.dart';
+import '../models/trip_model.dart'; // ייבוא מודל הטיול
 
 class ActivitiesScreen extends StatefulWidget {
+  // 1. המסך מקבל כעת אובייקט טיול ופונקציית עדכון
+  final Trip trip;
+  final Function(Trip) onTripUpdated;
+
+  const ActivitiesScreen({
+    super.key,
+    required this.trip,
+    required this.onTripUpdated,
+  });
+
   @override
   _ActivitiesScreenState createState() => _ActivitiesScreenState();
 }
 
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
-  List<Activity> _activities = [];
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  // 2. הרשימה המקומית מאותחלת מהטיול שקיבלנו
+  late List<Activity> _activities;
 
   @override
   void initState() {
     super.initState();
-    _loadActivities();
+    // העתקת הפעילויות מהטיול למשתנה מקומי
+    _activities = List<Activity>.from(widget.trip.activities);
+    _sortActivities();
   }
 
   void _sortActivities() {
-    // שינוי: ממיין את הרשימה לפי התאריך המלא
     _activities.sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime));
   }
 
-  Future<void> _loadActivities() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? activitiesString = prefs.getString('activities_list');
-    if (activitiesString != null) {
-      final List<dynamic> jsonList = jsonDecode(activitiesString);
-      setState(() {
-        _activities = jsonList.map((jsonItem) => Activity.fromJson(jsonItem)).toList();
-        _sortActivities();
-      });
-    }
+  // 3. בכל שינוי, אנחנו מעדכנים את הטיול וקוראים לפונקציה כדי שהשינוי יישמר
+  void _updateTripData() {
+    widget.trip.activities = _activities;
+    widget.onTripUpdated(widget.trip);
   }
 
-  Future<void> _saveActivities() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> jsonList =
-    _activities.map((activity) => activity.toJson()).toList();
-    await prefs.setString('activities_list', jsonEncode(jsonList));
-  }
-
-  // שינוי: הוספנו דיאלוג לאישור מחיקה
   Future<void> _showDeleteConfirmationDialog(int index) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('אישור מחיקה'),
-          content: Text('האם אתה בטוח שברצונך למחוק את הפעילות "${_activities[index].name}"?'),
+          content: Text('האם למחוק את הפעילות "${_activities[index].name}"?'),
           actions: <Widget>[
             TextButton(
               child: Text('ביטול'),
@@ -62,7 +58,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 setState(() {
                   _activities.removeAt(index);
                 });
-                _saveActivities();
+                _updateTripData(); // קריאה לשמירה
                 Navigator.of(context).pop();
               },
             ),
@@ -76,7 +72,6 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     final _nameController = TextEditingController(text: existingActivity?.name);
     final _descriptionController =
     TextEditingController(text: existingActivity?.description);
-
     DateTime? _selectedDate = existingActivity?.date;
     TimeOfDay? _selectedTime = existingActivity?.startTime;
 
@@ -86,25 +81,21 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             Future<void> _pickDate() async {
-              final DateTime? pickedDate = await showDatePicker(
+              final pickedDate = await showDatePicker(
                 context: context,
                 initialDate: _selectedDate ?? DateTime.now(),
                 firstDate: DateTime(2020),
                 lastDate: DateTime(2030),
               );
-              if (pickedDate != null && pickedDate != _selectedDate) {
-                setDialogState(() => _selectedDate = pickedDate);
-              }
+              if (pickedDate != null) setDialogState(() => _selectedDate = pickedDate);
             }
 
             Future<void> _pickTime() async {
-              final TimeOfDay? pickedTime = await showTimePicker(
+              final pickedTime = await showTimePicker(
                 context: context,
                 initialTime: _selectedTime ?? TimeOfDay.now(),
               );
-              if (pickedTime != null && pickedTime != _selectedTime) {
-                setDialogState(() => _selectedTime = pickedTime);
-              }
+              if (pickedTime != null) setDialogState(() => _selectedTime = pickedTime);
             }
 
             return Directionality(
@@ -115,15 +106,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextField(
-                        controller: _nameController,
-                        decoration: InputDecoration(labelText: 'שם הפעילות'),
-                      ),
+                      TextField(controller: _nameController, decoration: InputDecoration(labelText: 'שם הפעילות')),
                       SizedBox(height: 16),
-                      TextField(
-                        controller: _descriptionController,
-                        decoration: InputDecoration(labelText: 'תיאור (אופציונלי)'),
-                      ),
+                      TextField(controller: _descriptionController, decoration: InputDecoration(labelText: 'תיאור (אופציונלי)')),
                       SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -163,9 +148,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                           } else {
                             _activities[index!] = newOrUpdatedActivity;
                           }
-                          _sortActivities(); // מיון לאחר הוספה/עריכה
+                          _sortActivities();
                         });
-                        _saveActivities();
+                        _updateTripData(); // קריאה לשמירה
                         Navigator.pop(context);
                       }
                     },
@@ -183,36 +168,29 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('פעילויות')),
-      // שינוי: הוספנו RefreshIndicator
+      appBar: AppBar(
+        title: Text('פעילויות: ${widget.trip.name}'),
+      ),
       body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: _loadActivities,
+        onRefresh: () async {
+          // בעתיד, אם נטען מידע מהרשת, נוכל לרענן כאן
+        },
         child: _activities.isEmpty
-            ? Center(child: Text('אין פעילויות. לחץ על + להוספה.'))
+            ? Center(child: Text('אין פעילויות לטיול זה. לחץ על + להוספה.'))
             : ListView.builder(
           itemCount: _activities.length,
           itemBuilder: (context, index) {
             final activity = _activities[index];
             return CheckboxListTile(
-              title: Text(
-                activity.name,
-                style: TextStyle(decoration: activity.isDone ? TextDecoration.lineThrough : null),
-              ),
+              title: Text(activity.name, style: TextStyle(decoration: activity.isDone ? TextDecoration.lineThrough : null)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${DateFormat('dd/MM/yyyy').format(activity.date)} - ${activity.startTime.format(context)}',
-                  ),
-                  // הצג את התיאור רק אם הוא לא ריק
+                  Text('${DateFormat('dd/MM/yyyy').format(activity.date)} - ${activity.startTime.format(context)}'),
                   if (activity.description != null && activity.description!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        activity.description!,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
+                      child: Text(activity.description!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                     ),
                 ],
               ),
@@ -221,21 +199,17 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 setState(() {
                   activity.isDone = value ?? false;
                 });
-                _saveActivities();
+                _updateTripData(); // קריאה לשמירה
               },
-              // שינוי: ה-secondary הוא כעת Row עם שני כפתורים
               secondary: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: Icon(Icons.edit, color: Colors.blueGrey),
-                    tooltip: 'עריכת פעילות',
                     onPressed: () => _showActivityDialog(existingActivity: activity, index: index),
                   ),
                   IconButton(
                     icon: Icon(Icons.delete, color: Colors.red),
-                    tooltip: 'מחיקת פעילות',
-                    // שינוי: קריאה לדיאלוג האישור
                     onPressed: () => _showDeleteConfirmationDialog(index),
                   ),
                 ],

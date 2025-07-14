@@ -1,49 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../models/budget_category_model.dart';
 import '../models/expense_model.dart';
+import '../models/trip_model.dart'; // ייבוא מודל הטיול
 
 class BudgetScreen extends StatefulWidget {
+  // 1. המסך מקבל כעת אובייקט טיול ופונקציית עדכון
+  final Trip trip;
+  final Function(Trip) onTripUpdated;
+
+  const BudgetScreen({
+    super.key,
+    required this.trip,
+    required this.onTripUpdated,
+  });
+
   @override
   _BudgetScreenState createState() => _BudgetScreenState();
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  List<BudgetCategory> _categories = [];
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
-
+  // 2. הרשימה המקומית מאותחלת מהטיול שקיבלנו
+  late List<BudgetCategory> _categories;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _categories = List<BudgetCategory>.from(widget.trip.budgetCategories);
   }
 
-  // --- Data Persistence & Refresh ---
-  Future<void> _loadCategories() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? categoriesString = prefs.getString('budget_categories');
-    if (categoriesString != null) {
-      final List<dynamic> jsonList = jsonDecode(categoriesString);
-      if (mounted) {
-        setState(() {
-          _categories =
-              jsonList.map((json) => BudgetCategory.fromJson(json)).toList();
-          // שינוי: מיון הרשימה - החדש ביותר למעלה
-          _categories.sort((a, b) => b.creationDate.compareTo(a.creationDate));
-        });
-      }
-    }
-  }
-
-  Future<void> _saveCategories() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> jsonList =
-    _categories.map((category) => category.toJson()).toList();
-    await prefs.setString('budget_categories', jsonEncode(jsonList));
+  // 3. בכל שינוי, אנחנו מעדכנים את הטיול וקוראים לפונקציה כדי שהשינוי יישמר
+  void _updateTripData() {
+    widget.trip.budgetCategories = _categories;
+    widget.onTripUpdated(widget.trip);
   }
 
   // --- Deletion Logic ---
@@ -51,14 +41,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
     setState(() {
       _categories.removeAt(index);
     });
-    _saveCategories();
+    _updateTripData();
   }
 
   void _deleteExpense(int categoryIndex, int expenseIndex) {
     setState(() {
       _categories[categoryIndex].expenses.removeAt(expenseIndex);
     });
-    _saveCategories();
+    _updateTripData();
   }
 
   Future<void> _showDeleteConfirmationDialog({required String title, required VoidCallback onConfirm}) async {
@@ -67,20 +57,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('אישור מחיקה'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text(title),
-              ],
-            ),
-          ),
+          content: SingleChildScrollView(child: ListBody(children: [Text(title)])),
           actions: <Widget>[
-            TextButton(
-              child: Text('ביטול'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
+            TextButton(child: Text('ביטול'), onPressed: () => Navigator.of(context).pop()),
             TextButton(
               child: Text('מחק', style: TextStyle(color: Colors.red)),
               onPressed: () {
@@ -93,7 +72,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
       },
     );
   }
-
 
   // --- Dialogs to Add Data ---
   void _showAddCategoryDialog() {
@@ -132,17 +110,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ElevatedButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
+                final newCategory = BudgetCategory(
+                  name: _nameController.text,
+                  plannedAmount: double.parse(_amountController.text),
+                  creationDate: DateTime.now(),
+                  expenses: [],
+                );
                 setState(() {
-                  _categories.add(BudgetCategory(
-                    name: _nameController.text,
-                    plannedAmount: double.parse(_amountController.text),
-                    creationDate: DateTime.now(), // שינוי: הוספת תאריך יצירה
-                    expenses: [],
-                  ));
-                  // שינוי: מיון הרשימה לאחר הוספה
+                  _categories.add(newCategory);
                   _categories.sort((a, b) => b.creationDate.compareTo(a.creationDate));
                 });
-                _saveCategories();
+                _updateTripData();
                 Navigator.pop(context);
               }
             },
@@ -197,7 +175,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 setState(() {
                   _categories[categoryIndex].expenses.add(newExpense);
                 });
-                _saveCategories();
+                _updateTripData();
                 Navigator.pop(context);
               }
             },
@@ -211,12 +189,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('תקציב')),
+      appBar: AppBar(title: Text('תקציב: ${widget.trip.name}')),
       body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: _loadCategories,
+        onRefresh: () async { /* In the new architecture, refresh is handled by the parent */ },
         child: _categories.isEmpty
-            ? Center(child: Text('אין קטגוריות תקציב.\nמשוך למטה לרענון.'))
+            ? Center(child: Text('אין קטגוריות תקציב.\nלחץ על + להוספה.'))
             : ListView.builder(
           itemCount: _categories.length,
           itemBuilder: (context, categoryIndex) {
@@ -231,12 +208,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     leading: IconButton(
                       icon: Icon(Icons.delete_outline, color: Colors.red),
                       onPressed: () => _showDeleteConfirmationDialog(
-                        title: 'האם אתה בטוח שברצונך למחוק את הקטגוריה "${category.name}"?',
+                        title: 'האם למחוק את הקטגוריה "${category.name}"?',
                         onConfirm: () => _deleteCategory(categoryIndex),
                       ),
                     ),
                     title: Text(category.name, style: TextStyle(fontWeight: FontWeight.bold)),
-                    // שינוי: ה-subtitle הוא כעת Column כדי להציג שתי שורות
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
