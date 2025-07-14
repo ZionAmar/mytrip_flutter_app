@@ -5,6 +5,8 @@ import 'activities_screen.dart';
 import 'budget_screen.dart';
 import 'weather_screen.dart';
 import 'edit_trip_screen.dart';
+import 'map_screen.dart';
+
 
 // שינוי ל-StatefulWidget
 class HomeScreen extends StatefulWidget {
@@ -81,6 +83,21 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => WeatherScreen(trip: _currentTrip), // העבר את הטיול המעודכן
+            ),
+          );
+        },
+      ),
+      // בתוך ה-List<DashboardItem> items ב-HomeScreen
+      DashboardItem(
+        icon: Icons.map, // אייקון למפה
+        title: 'מפה',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MapScreen(
+                trip: _currentTrip, // העבר את אובייקט הטיול
+              ),
             ),
           );
         },
