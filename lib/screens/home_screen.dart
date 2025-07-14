@@ -1,4 +1,3 @@
-// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import '../models/trip_model.dart';
 import 'activities_screen.dart';
@@ -7,7 +6,7 @@ import 'weather_screen.dart';
 import 'edit_trip_screen.dart';
 import 'map_screen.dart';
 import 'trip_summary_screen.dart';
-
+import 'checklist_screen.dart'; // <--- NEW: Import your ChecklistScreen
 
 // שינוי ל-StatefulWidget
 class HomeScreen extends StatefulWidget {
@@ -25,21 +24,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // שמור עותק של הטיול במצב של ה-StatefulWidget
   late Trip _currentTrip;
 
   @override
   void initState() {
     super.initState();
-    _currentTrip = widget.trip; // אתחל את הטיול הנוכחי עם הטיול שהתקבל
+    _currentTrip = widget.trip;
   }
 
-  // פונקציה לעדכון הטיול וה-UI
   void _updateTripInHomeScreen(Trip updatedTrip) {
     setState(() {
-      _currentTrip = updatedTrip; // עדכן את המצב עם הטיול החדש
+      _currentTrip = updatedTrip;
     });
-    // קרא גם ל-onTripUpdated כדי לעדכן את המסך שמעל (רשימת הטיולים)
     widget.onTripUpdated(updatedTrip);
   }
 
@@ -54,8 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => ActivitiesScreen(
-                trip: _currentTrip, // העבר את הטיול המעודכן
-                onTripUpdated: _updateTripInHomeScreen, // העבר את פונקציית העדכון של ה-HomeScreen
+                trip: _currentTrip,
+                onTripUpdated: _updateTripInHomeScreen,
               ),
             ),
           );
@@ -69,8 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => BudgetScreen(
-                trip: _currentTrip, // העבר את הטיול המעודכן
-                onTripUpdated: _updateTripInHomeScreen, // העבר את פונקציית העדכון של ה-HomeScreen
+                trip: _currentTrip,
+                onTripUpdated: _updateTripInHomeScreen,
               ),
             ),
           );
@@ -83,35 +79,62 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => WeatherScreen(trip: _currentTrip), // העבר את הטיול המעודכן
+              builder: (context) => WeatherScreen(trip: _currentTrip),
             ),
           );
         },
       ),
-      // בתוך ה-List<DashboardItem> items ב-HomeScreen
+      // --- NEW: Dashboard Item for Checklist ---
       DashboardItem(
-        icon: Icons.map, // אייקון למפה
+        icon: Icons.checklist, // A suitable icon for a checklist
+        title: 'רשימות',
+        onTap: () {
+          // If you want a general checklist (not tied to a specific trip):
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChecklistScreen(), // Pass no specific trip
+            ),
+          );
+
+          // If you want a checklist *specific to this trip*:
+          // You would modify ChecklistScreen to accept a Trip ID or Trip object
+          // and then load/save checklist items based on that trip.
+          // For example:
+          /*
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChecklistScreen(tripId: _currentTrip.id),
+            ),
+          );
+          */
+        },
+      ),
+      // --- END NEW ---
+      DashboardItem(
+        icon: Icons.map,
         title: 'מפה',
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => MapScreen(
-                trip: _currentTrip, // העבר את אובייקט הטיול
+                trip: _currentTrip,
               ),
             ),
           );
         },
       ),
       DashboardItem(
-        icon: Icons.summarize, // אייקון למפה
+        icon: Icons.summarize,
         title: 'סיכום טיול',
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => TripSummaryScreen(
-                trip: _currentTrip, // העבר את אובייקט הטיול
+                trip: _currentTrip,
               ),
             ),
           );
@@ -125,12 +148,12 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => EditTripScreen(
-                trip: _currentTrip, // העבר את הטיול הנוכחי לעריכה
+                trip: _currentTrip,
               ),
             ),
           );
           if (updatedTrip != null && updatedTrip is Trip) {
-            _updateTripInHomeScreen(updatedTrip); // קרא לפונקציה החדשה לעדכון המצב ב-HomeScreen
+            _updateTripInHomeScreen(updatedTrip);
           }
         },
       ),
@@ -138,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentTrip.name), // השתמש בשם מהטיול במצב
+        title: Text(_currentTrip.name),
         centerTitle: true,
       ),
       body: Padding(
