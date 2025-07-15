@@ -5,7 +5,12 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChecklistScreen extends StatefulWidget {
-  const ChecklistScreen({super.key});
+  final String tripId; // <--- NEW: Add tripId as a required parameter
+
+  const ChecklistScreen({
+    super.key,
+    required this.tripId, // <--- NEW: Require tripId in the constructor
+  });
 
   @override
   _ChecklistScreenState createState() => _ChecklistScreenState();
@@ -15,11 +20,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   final List<ChecklistItem> _checklistItems = [];
   final TextEditingController _newItemController = TextEditingController();
 
-  static const String _storageKey = 'my_general_checklist_items';
+  // CHANGE: _storageKey is no longer static; it will be dynamic based on tripId
+  late String _currentStorageKey; // <--- NEW: Declare as late, will be initialized in initState
 
   @override
   void initState() {
     super.initState();
+    // NEW: Initialize the storage key using the tripId
+    _currentStorageKey = 'checklist_for_trip_${widget.tripId}';
     _loadChecklist();
   }
 
@@ -32,7 +40,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Future<void> _loadChecklist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? checklistJson = prefs.getString(_storageKey);
+      // CHANGE: Use _currentStorageKey
+      final String? checklistJson = prefs.getString(_currentStorageKey);
 
       if (checklistJson != null) {
         final List<dynamic> decodedList = jsonDecode(checklistJson);
@@ -40,12 +49,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           _checklistItems.clear();
           _checklistItems.addAll(decodedList.map((itemJson) => ChecklistItem.fromJson(itemJson as Map<String, dynamic>)).toList());
         });
-        print('Checklist loaded successfully.');
+        print('Checklist for trip ${widget.tripId} loaded successfully.'); // <--- DEBUG Print
       } else {
-        print('No checklist found in storage. Initializing with defaults or empty.');
+        print('No checklist found for trip ${widget.tripId}. Initializing empty.'); // <--- DEBUG Print
       }
     } catch (e) {
-      print('Error loading checklist: $e');
+      print('Error loading checklist for trip ${widget.tripId}: $e'); // <--- DEBUG Print
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('שגיאה בטעינת הרשימה.')),
       );
@@ -56,10 +65,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final List<Map<String, dynamic>> jsonList = _checklistItems.map((item) => item.toJson()).toList();
-      await prefs.setString(_storageKey, jsonEncode(jsonList));
-      print('Checklist saved successfully.');
+      // CHANGE: Use _currentStorageKey
+      await prefs.setString(_currentStorageKey, jsonEncode(jsonList));
+      print('Checklist for trip ${widget.tripId} saved successfully.'); // <--- DEBUG Print
     } catch (e) {
-      print('Error saving checklist: $e');
+      print('Error saving checklist for trip ${widget.tripId}: $e'); // <--- DEBUG Print
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('שגיאה בשמירת הרשימה.')),
       );
@@ -85,7 +95,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     _saveChecklist();
   }
 
-  // --- NEW: Function to confirm deletion ---
   Future<void> _confirmAndDeleteItem(int index) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
@@ -95,11 +104,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           content: Text('האם אתה בטוח שברצונך למחוק את המשימה "${_checklistItems[index].description}"?'),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // User cancels
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('ביטול'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(true), // User confirms
+              onPressed: () => Navigator.of(context).pop(true),
               child: const Text('מחק'),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
             ),
@@ -108,18 +117,17 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       },
     );
 
-    if (confirm == true) { // Only delete if user confirmed
-      _deleteItem(index); // Call the actual deletion function
+    if (confirm == true) {
+      _deleteItem(index);
     }
   }
 
-  // Actual deletion function (now private, called only after confirmation)
   void _deleteItem(int index) {
     setState(() {
       _checklistItems.removeAt(index);
     });
     _saveChecklist();
-    ScaffoldMessenger.of(context).showSnackBar( // Optional: show confirmation snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('המשימה נמחקה בהצלחה.')),
     );
   }
@@ -194,7 +202,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmAndDeleteItem(index), // <--- CHANGE: Call confirmation function
+                        onPressed: () => _confirmAndDeleteItem(index),
                       ),
                     ),
                   );

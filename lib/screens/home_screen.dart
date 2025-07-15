@@ -8,7 +8,7 @@ import 'edit_trip_screen.dart';
 import 'map_screen.dart';
 import 'trip_summary_screen.dart';
 import 'checklist_screen.dart';
-import 'memories_screen.dart'; // <--- NEW: Import MemoriesScreen
+import 'memories_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Trip trip;
@@ -92,14 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ChecklistScreen(),
+              // <--- FIX: Pass the tripId to ChecklistScreen
+              builder: (context) => ChecklistScreen(tripId: _currentTrip.id),
             ),
           );
         },
       ),
-      // --- NEW: Dashboard Item for Memories ---
       DashboardItem(
-        icon: Icons.photo_library, // A suitable icon for memories
+        icon: Icons.photo_library,
         title: 'זיכרונות',
         onTap: () async {
           final updatedTrip = await Navigator.push(
@@ -107,16 +107,12 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(
               builder: (context) => MemoriesScreen(
                 trip: _currentTrip,
-                onTripUpdated: _updateTripInHomeScreen, // Pass callback to update trip
+                onTripUpdated: _updateTripInHomeScreen,
               ),
             ),
           );
-          // If a trip was updated (e.g., memory added/deleted) within MemoriesScreen
-          // the updatedTrip would be handled by _updateTripInHomeScreen via the callback.
-          // No explicit check here is needed if the callback handles the update.
         },
       ),
-      // --- END NEW ---
       DashboardItem(
         icon: Icons.map,
         title: 'מפה',
