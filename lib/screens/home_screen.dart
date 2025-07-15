@@ -1,3 +1,4 @@
+// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import '../models/trip_model.dart';
 import 'activities_screen.dart';
@@ -6,9 +7,9 @@ import 'weather_screen.dart';
 import 'edit_trip_screen.dart';
 import 'map_screen.dart';
 import 'trip_summary_screen.dart';
-import 'checklist_screen.dart'; // <--- NEW: Import your ChecklistScreen
+import 'checklist_screen.dart';
+import 'memories_screen.dart'; // <--- NEW: Import MemoriesScreen
 
-// שינוי ל-StatefulWidget
 class HomeScreen extends StatefulWidget {
   final Trip trip;
   final Function(Trip) onTripUpdated;
@@ -36,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentTrip = updatedTrip;
     });
-    widget.onTripUpdated(updatedTrip);
+    widget.onTripUpdated(updatedTrip); // Notify parent (e.g., TripListScreen) to save
   }
 
   @override
@@ -84,31 +85,35 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      // --- NEW: Dashboard Item for Checklist ---
       DashboardItem(
-        icon: Icons.checklist, // A suitable icon for a checklist
+        icon: Icons.checklist,
         title: 'רשימות',
         onTap: () {
-          // If you want a general checklist (not tied to a specific trip):
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ChecklistScreen(), // Pass no specific trip
+              builder: (context) => const ChecklistScreen(),
             ),
           );
-
-          // If you want a checklist *specific to this trip*:
-          // You would modify ChecklistScreen to accept a Trip ID or Trip object
-          // and then load/save checklist items based on that trip.
-          // For example:
-          /*
-          Navigator.push(
+        },
+      ),
+      // --- NEW: Dashboard Item for Memories ---
+      DashboardItem(
+        icon: Icons.photo_library, // A suitable icon for memories
+        title: 'זיכרונות',
+        onTap: () async {
+          final updatedTrip = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChecklistScreen(tripId: _currentTrip.id),
+              builder: (context) => MemoriesScreen(
+                trip: _currentTrip,
+                onTripUpdated: _updateTripInHomeScreen, // Pass callback to update trip
+              ),
             ),
           );
-          */
+          // If a trip was updated (e.g., memory added/deleted) within MemoriesScreen
+          // the updatedTrip would be handled by _updateTripInHomeScreen via the callback.
+          // No explicit check here is needed if the callback handles the update.
         },
       ),
       // --- END NEW ---

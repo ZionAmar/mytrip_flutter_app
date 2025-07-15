@@ -1,7 +1,8 @@
 // lib/models/trip_model.dart
 import 'activity_model.dart';
 import 'budget_category_model.dart';
-import 'weather_model.dart'; // <--- ודא שזה קיים!
+import 'weather_model.dart';
+import 'memory_item_model.dart'; // <--- NEW: Import MemoryItem model
 
 class Trip {
   final String id;
@@ -12,7 +13,8 @@ class Trip {
   DateTime lastModifiedDate;
   List<Activity> activities;
   List<BudgetCategory> budgetCategories;
-  List<DailyWeather>? savedWeatherForecast; // <--- החזרנו את השדה
+  List<DailyWeather>? savedWeatherForecast;
+  List<MemoryItem>? memories; // <--- NEW: List to hold memories
 
   Trip({
     required this.id,
@@ -23,7 +25,8 @@ class Trip {
     required this.lastModifiedDate,
     this.activities = const [],
     this.budgetCategories = const [],
-    this.savedWeatherForecast, // <--- החזרנו לקונסטרקטור
+    this.savedWeatherForecast,
+    this.memories = const [], // <--- NEW: Initialize as empty list by default
   });
 
   Trip copyWith({
@@ -35,7 +38,8 @@ class Trip {
     DateTime? lastModifiedDate,
     List<Activity>? activities,
     List<BudgetCategory>? budgetCategories,
-    List<DailyWeather>? savedWeatherForecast, // <--- החזרנו ל-copyWith
+    List<DailyWeather>? savedWeatherForecast,
+    List<MemoryItem>? memories, // <--- NEW: Add to copyWith
   }) {
     return Trip(
       id: id ?? this.id,
@@ -46,7 +50,8 @@ class Trip {
       lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
       activities: activities ?? this.activities,
       budgetCategories: budgetCategories ?? this.budgetCategories,
-      savedWeatherForecast: savedWeatherForecast ?? this.savedWeatherForecast, // <--- החזרנו לכאן
+      savedWeatherForecast: savedWeatherForecast ?? this.savedWeatherForecast,
+      memories: memories ?? this.memories, // <--- NEW: Assign in copyWith
     );
   }
 
@@ -60,7 +65,8 @@ class Trip {
       'lastModifiedDate': lastModifiedDate.toIso8601String(),
       'activities': activities.map((a) => a.toJson()).toList(),
       'budgetCategories': budgetCategories.map((b) => b.toJson()).toList(),
-      'savedWeatherForecast': savedWeatherForecast?.map((w) => w.toJson()).toList(), // <--- החזרנו לשמירה
+      'savedWeatherForecast': savedWeatherForecast?.map((w) => w.toJson()).toList(),
+      'memories': memories?.map((m) => m.toJson()).toList(), // <--- NEW: Add to toJson
     };
   }
 
@@ -80,9 +86,12 @@ class Trip {
       budgetCategories: (json['budgetCategories'] as List<dynamic>?)
           ?.map((b) => BudgetCategory.fromJson(b as Map<String, dynamic>))
           .toList() ?? [],
-      savedWeatherForecast: (json['savedWeatherForecast'] as List<dynamic>?) // <--- החזרנו לטעינה
+      savedWeatherForecast: (json['savedWeatherForecast'] as List<dynamic>?)
           ?.map((w) => DailyWeather.fromJson(w as Map<String, dynamic>))
           .toList(),
+      memories: (json['memories'] as List<dynamic>?) // <--- NEW: Add to fromJson
+          ?.map((m) => MemoryItem.fromJson(m as Map<String, dynamic>))
+          .toList() ?? [],
     );
   }
 }

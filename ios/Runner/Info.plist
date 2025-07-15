@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app needs access to your photo library to select images for your memories.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app needs microphone access to record audio for your memories.</string> <key>NSCameraUsageDescription</key>
+    <string>This app needs camera access to capture photos/videos for your memories.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs location access to tag your memories with your current location.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

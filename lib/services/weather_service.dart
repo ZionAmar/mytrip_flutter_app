@@ -6,6 +6,7 @@ class WeatherService {
   // שינינו את כתובת ה-API לזו של התחזית החינמית
   static const _baseUrl = 'https://api.openweathermap.org/data/2.5/forecast';
   final String _apiKey;
+  String get apiKey => _apiKey; // <--- הוסיפו את השורה הזו כאן! זהו ה'חלון' לקוד הסודי
 
   WeatherService(this._apiKey);
 

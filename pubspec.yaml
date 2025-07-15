@@ -39,6 +39,22 @@ dependencies:
   google_maps_flutter: ^2.12.3
   geocoding: ^2.1.1
   cupertino_icons: ^1.0.8
+  image_picker: ^1.1.2
+  url_launcher: ^6.3.0
+  file_picker: ^8.0.0
+  path_provider: ^2.1.3
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+  open_filex: ^4.3.4
+  video_thumbnail: ^0.5.3
+  # record: ^6.0.0              # <--- REMOVE THIS LINE
+  # audio_waveforms: ^1.1.0    # <--- Ensure this is gone too if it was there
+
+  flutter_sound: ^9.2.16 # <--- NEW: Add this
+  flutter_sound_web: ^9.2.16 # <--- NEW: Add this (even if not targeting web directly)
+  just_audio: ^0.9.39 # <--- OPTIONAL: For dedicated audio playback, useful later
+
+
 
 dev_dependencies:
   flutter_test:
