@@ -96,7 +96,31 @@ class _AddTripScreenState extends State<AddTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('יצירת טיול חדש'),
+        title: const Text('יצירת טיול חדש', style: TextStyle(color: Colors.white)), // Set title color to white
+        centerTitle: true,
+        backgroundColor: Theme.of(context).primaryColor, // Or a specific color like Colors.blue
+        elevation: 0, // Remove shadow
+        automaticallyImplyLeading: false, // Disable default back button
+
+        // Back button (leading, typically on the right in RTL)
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), // iOS style back arrow
+          tooltip: 'חזרה',
+          onPressed: () {
+            Navigator.of(context).pop(); // Navigates back to the previous screen
+          },
+        ),
+        // Home button (actions, typically on the left in RTL)
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined, color: Colors.white), // Outlined home icon
+            tooltip: 'למסך הבית',
+            onPressed: () {
+              // This will pop all routes until the first route (home screen or trips list)
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,

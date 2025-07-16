@@ -1,4 +1,3 @@
-// lib/screens/map_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
@@ -74,6 +73,8 @@ class _MapScreenState extends State<MapScreen> {
               child: const Text('פתח הגדרות'),
               onPressed: () {
                 Navigator.of(context).pop();
+                // You might want to open app settings here
+                // openAppSettings();
               },
             ),
           ],
@@ -82,7 +83,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Helper to get coordinates for a given address
+// Helper to get coordinates for a given address
   Future<LatLng?> _getCoordinatesForAddress(String address, String markerId, String title) async {
     try {
       print('DEBUG: Attempting to get coordinates for: $address');
@@ -115,18 +116,18 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Main function to get coordinates for the destination city and activities
+// Main function to get coordinates for the destination city and activities
   Future<LatLng?> _getCoordinatesForCity() async {
     _markers.clear(); // Clear existing markers
 
-    // Get coordinates for the main destination city
+// Get coordinates for the main destination city
     final LatLng? cityCoords = await _getCoordinatesForAddress(
       widget.trip.destinationCity,
       widget.trip.destinationCity,
       widget.trip.destinationCity,
     );
 
-    // Get coordinates for activities with addresses
+// Get coordinates for activities with addresses
     for (int i = 0; i < widget.trip.activities.length; i++) {
       final activity = widget.trip.activities[i];
       if (activity.address != null && activity.address!.isNotEmpty) {
@@ -140,9 +141,10 @@ class _MapScreenState extends State<MapScreen> {
     return cityCoords;
   }
 
-  // Function to launch Google Maps directly (simplified)
+// Function to launch Google Maps directly (simplified)
   Future<void> _launchGoogleMaps(String destinationAddress, LatLng destinationCoordinates) async {
-    final String googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=${destinationCoordinates.latitude},${destinationCoordinates.longitude}&travelmode=driving';
+    // Correct Google Maps URL format for launching with coordinates
+    final String googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query=${destinationCoordinates.latitude},${destinationCoordinates.longitude}';
     final Uri uri = Uri.parse(googleMapsUrl);
 
     if (await launcher.canLaunchUrl(uri)) {
@@ -158,8 +160,31 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Prevents automatic back button
         title: Text('מפת היעד: ${widget.trip.destinationCity}'),
         centerTitle: true,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Colors.blue, // Use theme or default
+        elevation: 0, // Remove shadow if desired
+
+        // Back button (leading, typically on the right in RTL)
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), // iOS style back arrow
+          tooltip: 'חזרה',
+          onPressed: () {
+            Navigator.of(context).pop(); // Navigates back to the previous screen
+          },
+        ),
+        // Home button (actions, typically on the left in RTL)
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined, color: Colors.white), // Outlined home icon
+            tooltip: 'למסך הבית',
+            onPressed: () {
+              // This will pop all routes until the first route (home screen or trips list)
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<LatLng?>(
         future: _coordinatesFuture,

@@ -1,26 +1,22 @@
-enum MemoryType {
-  photo,
-  video,
-  note,
-  link,
-  audio,
-}
+import 'package:uuid/uuid.dart'; // Make sure uuid is in pubspec.yaml
+
+enum MemoryType { photo, video, note, link, audio }
 
 class MemoryItem {
   final String id;
   final MemoryType type;
-  String title;
-  String? description;
-  String content; // File path, URL, or note text
-  DateTime timestamp;
-  String? thumbnailUrl; // For preview (same as content for images, or generated for video)
+  final String title;
+  final String? description;
+  final String content; // Path for media, URL for link, text for note
+  final DateTime timestamp;
+  final String? thumbnailUrl; // For photo/video/audio preview
 
-  // --- NEW: Location and Weather data ---
-  double? latitude;
-  double? longitude;
-  String? locationName; // A human-readable name for the location
-  String? weatherDescription; // e.g., "Clear Sky"
-  double? weatherTemp;       // e.g., 25.5
+  // Location and Weather data for the moment
+  final double? latitude;
+  final double? longitude;
+  final String? locationName;
+  final String? weatherDescription;
+  final double? weatherTemp;
 
   MemoryItem({
     required this.id,
@@ -30,7 +26,6 @@ class MemoryItem {
     required this.content,
     required this.timestamp,
     this.thumbnailUrl,
-    // --- NEW fields in constructor ---
     this.latitude,
     this.longitude,
     this.locationName,
@@ -38,24 +33,23 @@ class MemoryItem {
     this.weatherTemp,
   });
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'type': type.toString().split('.').last,
-      'title': title,
-      'description': description,
-      'content': content,
-      'timestamp': timestamp.toIso8601String(),
-      'thumbnailUrl': thumbnailUrl,
-      // --- NEW: Add to JSON conversion ---
-      'latitude': latitude,
-      'longitude': longitude,
-      'locationName': locationName,
-      'weatherDescription': weatherDescription,
-      'weatherTemp': weatherTemp,
-    };
-  }
+  // Convert MemoryItem to a JSON map for saving
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type.toString().split('.').last, // Store enum as string
+    'title': title,
+    'description': description,
+    'content': content,
+    'timestamp': timestamp.toIso8601String(),
+    'thumbnailUrl': thumbnailUrl,
+    'latitude': latitude,
+    'longitude': longitude,
+    'locationName': locationName,
+    'weatherDescription': weatherDescription,
+    'weatherTemp': weatherTemp,
+  };
 
+  // Create a MemoryItem from a JSON map for loading
   factory MemoryItem.fromJson(Map<String, dynamic> json) {
     return MemoryItem(
       id: json['id'] as String,
@@ -65,7 +59,6 @@ class MemoryItem {
       content: json['content'] as String,
       timestamp: DateTime.parse(json['timestamp'] as String),
       thumbnailUrl: json['thumbnailUrl'] as String?,
-      // --- NEW: Read from JSON ---
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       locationName: json['locationName'] as String?,

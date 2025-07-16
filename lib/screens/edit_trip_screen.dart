@@ -120,7 +120,31 @@ class _EditTripScreenState extends State<EditTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('עריכת פרטי טיול'),
+        title: const Text('עריכת פרטי טיול', style: TextStyle(color: Colors.white)), // Set title color to white
+        centerTitle: true,
+        backgroundColor: Theme.of(context).primaryColor, // Or a specific color like Colors.blue
+        elevation: 0, // Remove shadow
+        automaticallyImplyLeading: false, // Disable default back button
+
+        // Back button (leading, typically on the right in RTL)
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          tooltip: 'חזרה',
+          onPressed: () {
+            Navigator.of(context).pop(); // Navigates back to the previous screen
+          },
+        ),
+        // Home button (actions, typically on the left in RTL)
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined, color: Colors.white),
+            tooltip: 'למסך הבית',
+            onPressed: () {
+              // This will pop all routes until the first route (home screen or trips list)
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,
